@@ -1,0 +1,17 @@
+# 文字 -> 图片 apiURL
+word2img_url = 'http://[hostip]:[port]/got_image'
+# 以图生图 apiURL
+img2img_url = 'http://[hostip]:[port]/got_image2image'
+# token
+token = ''
+
+# 口令间隔时间(默认每 60 秒可以使用一次口令)
+interval = 60
+# 每日口令使用次数(默认每天可以使用 20 次口令)
+daily_limit = 20
+
+# 允许使用 ai 绘图的群号列表
+ai_draw_group_list = [111111,2222222]
+# 允许使用全部功能的群号列表
+all_group_list = [3333333,4444444]
+
