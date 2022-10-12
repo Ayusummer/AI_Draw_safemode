@@ -76,15 +76,18 @@ def get_xp_list(uid):
             keyword, num = xp_data
             new_data.append((keyword,num))
         rankData = sorted(new_data,key=lambda cus:cus[1],reverse=True)
+        print(f'返回查询结果为: {rankData}')
         return rankData
     else:
         return []
 
 
 def get_xp_list_all():
-    """获取大家的 xp 列表(前15项)"""
+    """获取群友的 xp 列表(前15项)"""
     xp = XpCounter()
+    print('已进入查询函数, 准备调用数据库查询函数查询')
     xp_list = xp._get_xp_list_all(15)
+    print(f'''查询结果为: {xp_list}''')
     if len(xp_list)>0:
         data = sorted(xp_list,key=lambda cus:cus[1],reverse=True)
         new_data = []
