@@ -1,4 +1,4 @@
-# 炼金手册
+# 炼金手册数据库操作
 from os.path import dirname, join, exists
 from os import makedirs, remove
 import sqlite3
@@ -75,11 +75,10 @@ class AlchemyManual:
             raise Exception('删除配方时发生错误')
     
 
-def upload_recipe(bot, ev: CQEvent) -> tuple:
+def upload_recipe(ev: CQEvent) -> tuple:
     """上传配方
     
     Args:
-        bot (Bot): bot
         ev (CQEvent): event
 
     Returns: tuple(code, str)
@@ -135,20 +134,12 @@ def upload_recipe(bot, ev: CQEvent) -> tuple:
         return (0, f'其他报错: {e}')
 
 
-def upload_recipe_by_reply(bot, ev: CQEvent, tmsg) -> tuple:
-    """通过回复 bot 消息上传配方
-    TODO: 没能成功复现, 有待后续测试
-    """
+def upload_recipe_by_reply(real_message) -> tuple:
+    """通过回复 bot 消息上传配方"""
     try:
-        print(f'获取到的消息为: {tmsg}')
-        # 获取转发消息中的第一条消息
-        get_url = f"http://127.0.0.1:5701/get_forward_msg?message_id={tmsg['message_id']}"
-        print(f'正在向 {get_url} 发送请求')
-        # response = requests.get(get_url)
-        # print(f'请求结果: {response.json()}')
-        tmsg = tmsg.get_forward_msg()
-        print(f'j解析转发消息中的消息为 {tmsg}')
-        image_url = re.search(r"\[CQ:image,file=(.*),url=(.*)\]", str(tmsg["message"]))
+        # print(f'数据库查询函数接收到的消息: {real_message}')
+        image_url = re.search(r"\[CQ:image,file=(.*),url=(.*)\]", real_message)
+        # print(f'image_url为: {image_url}')
         if not image_url:
             return (0, '未找到图片')
         file = image_url.group(1)
@@ -178,18 +169,23 @@ def upload_recipe_by_reply(bot, ev: CQEvent, tmsg) -> tuple:
     except:
         return (0, '图片格式出错')
     try:
-        seed_list1=str(tmsg["message"]).split(f"scale:")
-        seed_list2=seed_list1[0].split('eed:')
-        seed=seed_list2[1].strip ()
+        # 匹配传入字符串中 seed - scale 的部分并去除空格也即 seed 的值
+        seed_prefix = 'seed'
+        seed_suffix = 'scale'
+        seed = real_message[real_message.find(seed_prefix) + len(seed_prefix):real_message.find(seed_suffix)].strip()
     except:
         return (0, '种子格式出错')
     try:
-        scale_list=seed_list1[1].split(f"tags:")
-        scale=scale_list[0].strip()
+        # 匹配传入字符串中 scale - tags 的部分并去除空格也即 scale 的值
+        scale_prefix = 'scale'
+        scale_suffix = 'tags'
+        scale = real_message[real_message.find(scale_prefix) + len(scale_prefix):real_message.find(scale_suffix)].strip()
     except:
         return (0, '权重格式出错')
     try:
-        tags=scale_list[1].strip()
+        # 匹配传入字符串中 tags - 末尾 的部分并去除空格也即 tags 的值
+        tags_prefix = 'tags'
+        tags = real_message[real_message.find(tags_prefix) + len(tags_prefix):].strip()
     except:
         return (0, '标签格式出错')
     try:
@@ -206,7 +202,7 @@ def upload_recipe_by_reply(bot, ev: CQEvent, tmsg) -> tuple:
 ttf_font_path = join(dirname(__file__), 'SIMSUNB.TTF')
 
 
-def get_alchemy_manual(bot, ev: CQEvent, page: int = 1):
+def get_alchemy_manual(page: int = 1):
     """获取配方 page:页码, 默认为1"""
     alchemy_manual = AlchemyManual()
     image_list = alchemy_manual._get_alchemy_manual()
@@ -238,7 +234,7 @@ def get_alchemy_manual(bot, ev: CQEvent, page: int = 1):
     return (1, resultmes)
 
 
-def get_recipe(bot, ev: CQEvent, rowid: int):
+def get_recipe(rowid: int):
     """获取配方 rowid:配方id"""
     alchemy_manual = AlchemyManual()
     recipe = alchemy_manual._get_recipe(rowid)
@@ -253,7 +249,7 @@ def get_recipe(bot, ev: CQEvent, rowid: int):
     return (1, msg)
 
 
-def use_recipe(bot, ev: CQEvent, rowid: int):
+def use_recipe(rowid: int):
     """使用配方 rowid:配方id"""
     alchemy_manual = AlchemyManual()
     recipe = alchemy_manual._get_recipe(rowid)
@@ -263,7 +259,7 @@ def use_recipe(bot, ev: CQEvent, rowid: int):
     return (1, msg)
 
 
-def delete_recipe_by_rowid(bot, ev: CQEvent, rowid: int):
+def delete_recipe_by_rowid(rowid: int):
     """删除配方 rowid:配方id"""
     alchemy_manual = AlchemyManual()
     recipe = alchemy_manual._get_recipe(rowid)

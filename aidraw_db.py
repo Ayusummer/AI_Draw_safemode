@@ -77,15 +77,29 @@ async def bangzhu(bot, ev):
 @sv.on_fullmatch(['我的XP'])
 async def get_my_xp(bot, ev: CQEvent):
     xp_list = xp.get_xp_list(ev.user_id)
-    uid = ev.user_id
-    msg = '您的XP信息为：\n'
+    # uid = ev.user_id
+    msg = '您的XP信息为:\n'
     if len(xp_list)>0:
         for xpinfo in xp_list:
             keyword, num = xpinfo
             msg += f'关键词：{keyword}；查询次数：{num}\n'
     else:
         msg += '暂无您的XP信息'
-    await bot.send(ev, msg)
+    await bot.send(ev, msg, at_sender=True)
+
+
+@sv.on_fullmatch(['群友的XP'])
+async def get_group_xp(bot, ev: CQEvent):
+    xp_list = xp.get_xp_list_all()
+    msg = '群友的XP信息为:\n'
+    if len(xp_list)>0:
+        for xpinfo in xp_list:
+            keyword, num = xpinfo
+            msg += f'关键词：{keyword}；查询次数：{num}\n'
+    else:
+        msg += '暂无群友的XP信息'
+    await bot.send(ev, msg, at_sender=True)
+
 
 
 @sv.on_prefix(('上传'))
@@ -94,7 +108,7 @@ async def upload_header(bot, ev):
     if not priv.check_priv(ev, priv.ADMIN):
         await bot.finish(ev, '上传配方仅限管理员使用', at_sender=True)
         return
-    response = alchemy_manual.upload_recipe(bot, ev)
+    response = alchemy_manual.upload_recipe(ev)
     if response[0] == 0:
         await bot.finish(ev, response[1], at_sender=True)
     else:
@@ -103,7 +117,7 @@ async def upload_header(bot, ev):
 
 @sv.on_message('group')
 async def replymessage(bot, ev: CQEvent):
-    """通过回复 bot 消息上传"""
+    """通过回复 bot 的合并转发消息上传"""
     print(f'收到来自{ev.user_id}的消息：{ev.message}, 类型：{ev.message_type}')
     seg=ev.message[0]
     if seg.type != 'reply':
@@ -132,9 +146,18 @@ async def replymessage(bot, ev: CQEvent):
     except ActionFailed:
         await bot.finish(ev, '该消息已过期，请重新转发~')
         return
+    print(f'获取到的消息为: {tmsg}')
+    # 获取合并抓发消息的 id(前 15 个字符为 [CQ:forward,id=])
+    forward_id = tmsg['message'][15:-1]
+    print(f'获取到的合并转发消息id为: {forward_id}')
+    # 获取转发消息中的第一条消息
+    print('正在获取转发消息中的第一条消息')
+    message_forward = await bot.get_forward_msg(id=forward_id)
+    print(f'获取到的转发消息为: {message_forward}, 类型为: {type(message_forward)}')
+    real_message = message_forward['messages'][0]['content']
+    print(f'获取到的转发消息中的第一条消息为: {real_message}')
 
-
-    response = alchemy_manual.upload_recipe_by_reply(bot, ev, tmsg)
+    response = alchemy_manual.upload_recipe_by_reply(real_message)
     if response[0] == 0:
         await bot.finish(ev, response[1], at_sender=True)
     else:
@@ -146,7 +169,7 @@ async def replymessage(bot, ev: CQEvent):
 async def alchemy_book(bot, ev):
     match = ev['match']
     page=int(match.group(1))-1
-    response = alchemy_manual.get_alchemy_manual(bot, ev, page)
+    response = alchemy_manual.get_alchemy_manual(page)
     if response[0] == 1:
         await bot.send(ev, response[1])
 
@@ -161,8 +184,9 @@ async def view_recipe(bot, ev):
     match = ev['match']
     rowid=int(match.group(1))
 
-    response = alchemy_manual.get_recipe(bot, ev, rowid)
+    response = alchemy_manual.get_recipe(rowid)
     if response[0] == 1:
+        # print(f'发送配方消息：{response[1]}')
         await bot.send(ev, response[1])
 
 
@@ -181,7 +205,7 @@ async def generate_recipe(bot, ev):
     rowid=int(match.group(1))
     await bot.send(ev, f"\n正在炼金中, 请稍后...\n(今日剩余{daily_limit_ - int(daily_limit.get_num(uid))}次)", at_sender=True)
 
-    response = alchemy_manual.use_recipe(bot, ev, rowid)
+    response = alchemy_manual.use_recipe(rowid)
 
     if response[0] == 1:
         msg = response[1]
@@ -198,7 +222,7 @@ async def delete_recipe(bot, ev):
     match = ev['match']
     rowid=int(match.group(1))
 
-    response = alchemy_manual.delete_recipe_by_rowid(bot, ev, rowid)
+    response = alchemy_manual.delete_recipe_by_rowid(rowid)
     if response[0] == 1:
         await bot.send(ev, response[1])
 
